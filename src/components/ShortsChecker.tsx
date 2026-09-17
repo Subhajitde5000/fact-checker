@@ -6,6 +6,7 @@ import { runMockAnalysis } from "@/lib/mockAnalysis";
 import type { AnalysisResult } from "@/lib/types";
 import { VerdictBadge } from "./VerdictBadge";
 import { ClaimCard } from "./ClaimCard";
+import { ApiKeyModal, type ApiConfig } from "./ApiKeyModal";
 
 const STEPS = [
   "Fetching video metadata",
@@ -45,13 +46,20 @@ export function ShortsChecker() {
   const [stepIndex, setStepIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AnalysisResult | null>(null);
-  const [history, setHistory] = useState<AnalysisResult[]>([]);
+  const [history, setHistory] = useState<AnalysisResult[]>(() => loadHistory());
 
-  useEffect(() => {
-    setHistory(loadHistory());
-  }, []);
+  // In-memory API configuration (clears on refresh)
+  const [apiConfig, setApiConfig] = useState<ApiConfig | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const videoId = useMemo(() => extractYoutubeId(url), [url]);
+
+  const providerNames: Record<string, string> = {
+    openai: "OpenAI (GPT)",
+    claude: "Anthropic (Claude)",
+    openrouter: "OpenRouter",
+    groq: "Groq API",
+  };
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -69,7 +77,6 @@ export function ShortsChecker() {
     setStepIndex(0);
 
     for (let i = 0; i < STEPS.length; i++) {
-      // eslint-disable-next-line no-await-in-loop
       await new Promise((resolve) => setTimeout(resolve, 480 + Math.random() * 380));
       setStepIndex(i);
     }
@@ -101,6 +108,42 @@ export function ShortsChecker() {
 
   return (
     <div className="mx-auto w-full max-w-4xl">
+      {/* API Key Banner / Action Bar */}
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-xs sm:text-sm">
+        <div className="flex items-center gap-2">
+          <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-violet-500/20 text-xs">
+            ⚡
+          </span>
+          {apiConfig ? (
+            <span className="text-slate-200">
+              Custom API active:{" "}
+              <strong className="text-violet-300">
+                {providerNames[apiConfig.provider] || apiConfig.provider}
+              </strong>{" "}
+              <span className="text-[11px] text-amber-300/90">(Session-only, resets on refresh)</span>
+            </span>
+          ) : (
+            <span className="text-slate-400">
+              Non-tech user? Add your own AI API Key for enhanced analysis & higher speed!
+            </span>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={() => setIsModalOpen(true)}
+          className="inline-flex items-center gap-1.5 rounded-xl border border-violet-500/30 bg-violet-500/10 px-3.5 py-1.5 font-medium text-violet-200 hover:bg-violet-500/20 transition"
+        >
+          {apiConfig ? "⚙️ Manage API Key" : "🔑 Add Custom API Key"}
+        </button>
+      </div>
+
+      <ApiKeyModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        apiConfig={apiConfig}
+        onSave={(config) => setApiConfig(config)}
+      />
+
       <form
         onSubmit={handleSubmit}
         className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-3 shadow-[0_20px_60px_rgba(0,0,0,0.35)] backdrop-blur sm:flex-row sm:items-center"
