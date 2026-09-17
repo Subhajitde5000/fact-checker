@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+html {
+  color-scheme: dark;
+}
+
+::selection {
+  background-color: rgba(167, 139, 250, 0.35);
+}
+
+* {
+  scrollbar-color: rgba(167, 139, 250, 0.4) transparent;
+}
+
